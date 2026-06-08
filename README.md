@@ -151,7 +151,7 @@ If you find this codebase or research useful, please cite our paper:
 ```bibtex
 @article{muzzamil2026multimodal,
   title={A Multimodal Transformer Framework with Hydrological Regularization for Water Occurrence Mapping in the Indus Delta},
-  author={Muzzamil, Mirza Muhammad and Ismail, Muhammad Ali and Ahmed, Syed Imran and Rustamov, Rustam B.},
+  author={Muzzamil, Mirza Muhammad and Ismael, Muhammad Ali and Ahmad, Syed Imran and Rustomov, Rustam B.},
   journal={Environmental Modelling & Software},
   volume={Under Review},
   year={2026}
