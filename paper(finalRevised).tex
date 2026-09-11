@@ -1,0 +1,673 @@
+\documentclass[preprint,12pt]{elsarticle}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage[utf8]{inputenc}
+\usepackage[section]{placeins}
+\usepackage[caption=false]{subfig}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+
+% --- Advanced Float Control to Prevent Figure-Only Pages & Reduce Whitespace ---
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.80}
+\renewcommand{\dbltopfraction}{0.85}
+\renewcommand{\dblfloatpagefraction}{0.80}
+
+\graphicspath{{./}}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{Integrating Multimodal Earth Observations and Hydrological Regularization for Spatiotemporal Wetland Water Mapping in the Indus Delta}
+
+\author{Mirza Muhammad Muzzamil\corref{cor1}}
+\ead{mirzamuzzamil@neduet.edu.pk}
+
+\cortext[cor1]{Corresponding author.}
+
+\affiliation{
+    organization={NED University of Engineering and Technology},
+    addressline={University Road},
+    city={Karachi},
+    postcode={75270},
+    country={Pakistan}
+}
+
+
+\begin{abstract}
+\textbf{Background:} Coastal deltaic wetlands are dynamic and ecologically fragile systems increasingly threatened by climatic changes and declining upstream freshwater discharges. 
+\textbf{Research Gap:} Monitoring spatiotemporal water dynamics in these data-scarce basins is constrained by scale disparities between high-resolution remote sensing and coarse climatological data, alongside the tendency of standard machine learning models to produce physically inconsistent outputs. 
+\textbf{Objective:} In this study, we develop a hybrid scientific machine learning framework to map spatiotemporal surface water occurrence with physical mass-balance consistency. 
+\textbf{Methodology:} The proposed Multimodal Flood Physics-Regularized Transformer (MFPIT) fuses 10\,m Sentinel-2 multispectral spatial tokens with 4\,km coarse hydroclimatological variables via a directed Multi-Fidelity Cross-Attention (MF-CA) mechanism, optimized under a surrogate mass-balance regularization loss. 
+\textbf{Datasets:} The framework is evaluated on a 23-year (2001--2023) spatiotemporal dataset from the Indus River Delta (Pakistan) using a temporal holdout partition. 
+\textbf{Main Results:} Under a target-leakage-prevented matched-evaluation (JRC=0) benchmark, MFPIT achieves competitive spatiotemporal ranking performance (PR-AUC = 0.8820), while tree-based baselines demonstrate strong threshold-dependent segmentation (IoU = 0.6872) and probability calibration. 
+\textbf{Ecological Relevance:} Enforcing the physical conservation constraint reduces surrogate mass-balance inconsistency by over 99\%, guiding the model toward environmentally coherent predictions. 
+\textbf{Practical Applications:} This spatiotemporal mapping approach provides a structured decision-support tool for estuarine conservation, mangrove protection, and climate-resilience policy. 
+\textbf{Future Impact:} Our results demonstrate that physics-regularized multi-fidelity learning can enhance environmental monitoring and ecological modeling in data-scarce deltaic systems.
+\end{abstract}
+
+\begin{keyword}
+Ecological Informatics \sep Remote Sensing \sep Hydrological Regularization \sep Water Occurrence Mapping \sep Multi-Fidelity Data Fusion \sep Scientific Machine Learning \sep Indus River Delta \sep Estuarine Wetland Monitoring \sep Climate Resilience \sep Spatiotemporal Transformers
+\end{keyword}
+
+\end{frontmatter}
+
+\section*{Highlights}
+\begin{itemize}
+    \item MFPIT fuses multi-resolution Earth observation and hydroclimate data.
+    \item Hydrological mass-balance regularization ensures physical consistency.
+    \item Multi-fidelity cross-attention resolves environmental scale disparities.
+    \item Evaluated on a 23-year spatiotemporal benchmark in the Indus Delta.
+    \item Supports wetland conservation, mangrove protection, and flood planning.
+\end{itemize}
+
+\section*{Software and Data Availability}
+\begin{itemize}
+    \item \textbf{Name of software}: Multimodal Flood Physics-Regularized Transformer (MFPIT)
+    \item \textbf{Developers}: Mirza Muhammad Muzzamil
+    \item \textbf{Contact}: mirzamuzzamil@neduet.edu.pk
+    \item \textbf{Date first available}: June 2026
+    \item \textbf{Software required}: Python (>= 3.10), PyTorch, NumPy, Scikit-learn (Tested on Windows 11 and Ubuntu 22.04)
+    \item \textbf{Program language}: Python
+    \item \textbf{Source code at}: \url{https://github.com/mirzamuzzamilbaig/MFPIT} (To be made public upon publication)
+    \item \textbf{Documentation}: Code documentation, dependency specifications, and reproducibility guides are available in the repository at \url{https://github.com/mirzamuzzamilbaig/MFPIT}
+    \item \textbf{Data sources}: The datasets used in this study include Sentinel-1 SAR imagery, Sentinel-2 multispectral imagery, MODIS products, CHIRPS precipitation, TerraClimate variables, and the JRC Global Surface Water dataset.
+    \item \textbf{Data availability}: All datasets used in this study are publicly available from their respective providers and are cited within the manuscript.
+\end{itemize}
+
+\section{Introduction}
+The Indus River Delta, spanning approximately 600,000 hectares along the southern Sindh coastline of Pakistan, represents one of the most hydrologically dynamic and ecologically vulnerable estuarine systems in the world. As a vital ecological and socio-economic lifeline, the delta supports extensive coastal agriculture, local fisheries, and the world's largest arid-climate mangrove forest, dominated by \textit{Avicennia marina} \cite{rehman_indus_2024}. This highly fragile ecosystem is increasingly threatened by compounding anthropogenic stressors and climate change, including altered monsoon variability, sea-level rise in the Arabian Sea, and a persistent reduction in upstream freshwater discharges. The deltaic morphology, characterized by a complex network of 17 major tidal creeks and low-lying mudflats, creates a highly non-linear hydrodynamic environment where saline coastal tides interact with freshwater inflows. Crucially, the freshwater regime of the Indus River is heavily dependent on glacier and snowmelt runoff from the Hindu Kush--Karakoram--Himalaya (HKH) region, the "Water Towers of Asia" \cite{immerzeel_science_2010, lutz_consistent_2014}. Any cryospheric anomalies in these headwaters directly propagate downstream, altering sediment dynamics and seasonal inundation extent, which are critical for mangrove survival and agricultural sustainability in the delta.
+
+In this context, mapping spatiotemporal surface water occurrence is a cornerstone of ecological informatics, providing essential decision-support for wetland conservation and water resource management. Traditional numerical hydrodynamic models (e.g., HEC-RAS, SWAT) solve physical equations of motion but are severely constrained in data-scarce basins where bathymetry, gauge calibration, and boundary conditions are unavailable. Conversely, machine learning models (e.g., Deep Convolutional Networks, Vision Transformers) have emerged as powerful tools for mapping surface water from remote sensing imagery. However, when applied to ecological and hydrological modeling, traditional deep learning architectures encounter two fundamental challenges:
+\begin{enumerate}
+    \item \textbf{Resolution Friction and Scale Disparity:} Earth observation datasets are highly heterogeneous. High-resolution optical and radar data (e.g., Sentinel-2 and Sentinel-1 at 10\,m) capture localized creek-level water boundaries, whereas crucial climatological forcing variables (e.g., CHIRPS precipitation and TerraClimate evapotranspiration) are only available at coarse resolutions (4--5.5\,km). Naive interpolation or self-attention operators struggle to bridge this spatial scale disparity, causing high computational overhead or losing fine-scale boundary details.
+    \item \textbf{Physical Inconsistency and Mass Discrepancy:} Purely data-driven architectures are physics-agnostic. Lacking embedded representation of conservation principles, they frequently produce ecologically implausible predictions, such as sudden, unphysical changes in water surface area that violate the local water balance.
+\end{enumerate}
+
+To address these limitations, we present the \textbf{Multimodal Flood Physics-Regularized Transformer (MFPIT)} framework. MFPIT is a hybrid scientific machine learning (SciML) model designed for spatiotemporal water occurrence mapping under a surrogate mass-balance consistency constraint. Unlike standard neural networks, we formulate an auxiliary physical loss based on water-balance conservation to regularize the latent storage representation of the transformer, restricting predictions to physically plausible trajectories. To address resolution friction, we develop a Multi-Fidelity Cross-Attention (MF-CA) mechanism. The MF-CA module uses high-resolution spatial queries to adaptively query coarse climatological key-values, enabling efficient multi-modal data fusion with linear computational scaling.
+
+Furthermore, we address target data leakage in spatiotemporal evaluation. Many existing remote sensing frameworks rely on static water occurrence priors (e.g., historical JRC occurrence), which inflates test accuracy due to temporal autocorrelation. We enforce a strict matched-evaluation protocol (setting historical priors to zero, $JRC=0$) during training and testing, forcing models to rely strictly on dynamic spectral and climatological signals. We evaluate MFPIT against traditional tree-based ensembles (Random Forest, GBDT) and deep learning models (U-Net, CNN-LSTM) under a 23-year temporal holdout benchmark (2001--2023) in the Indus Delta. The evaluation addresses two unified tasks: (i) continuous water-storage proxy estimation, and (ii) probabilistic flood susceptibility mapping under extreme monsoon events (specifically the catastrophic 2020 and 2022 floods).
+
+The major contributions of this work to the field of ecological informatics are:
+\begin{itemize}
+    \item \textbf{Physics-Regularized Neural Architecture:} The formulation and integration of a surrogate mass-balance consistency loss that regularizes the network's latent storage estimations against external hydroclimatological fluxes, reducing unphysical predictions by over 99\%.
+    \item \textbf{Multi-Fidelity Fusion via Cross-Attention:} A directed cross-attention framework (MF-CA) that bridges the scale disparity between 10\,m Sentinel imagery and 4\,km climatological grids with linear spatiotemporal complexity $O(N \cdot M)$.
+    \item \textbf{Unbiased Spatiotemporal Evaluation:} The establishment of a target-leakage-free matched-evaluation benchmark (JRC=0) evaluated over 23 years, validating model generalizability during extreme historical floods.
+\end{itemize}
+
+The remainder of this paper is organized as follows. Section~2 reviews the literature on deep learning in hydrology, scientific machine learning, and multi-fidelity fusion, identifying key research gaps. Section~3 describes the proposed MFPIT architecture, the multi-fidelity cross-attention mechanism, and the mathematical derivation of the physical mass-balance regularization loss. Section~4 presents the experimental design, including the study area, datasets, and validation protocols. Section~5 analyzes the experimental results, case studies of extreme flood events, and parameter sensitivity. Section~6 discusses the ecological implications, model limitations, and future work. Finally, Section~7 concludes the study.
+
+\section{Literature Review}
+Fusing deep learning, satellite remote sensing, and auxiliary physical constraints is driving notable progress in environmental modeling, establishing the interdisciplinary field of ecological informatics. For highly complex and fragile estuarine environments like the Indus River Delta \cite{haider_gridded_2025}, mapping surface water dynamics is key to understanding mangrove habitat changes, coastal erosion, and climate-induced flood vulnerabilities. To contextualize the proposed MFPIT framework, this section critically reviews and contrasts recent progress in machine learning for wetland hydrology, physics-informed neural architectures, and multi-fidelity scale fusion, identifying key research gaps.
+
+\subsection{Deep Learning and Transformers in Wetland Hydrology}
+Deep learning has increasingly superseded traditional conceptual and numerical models in regional-scale hydrological modeling. The transdisciplinary utility of deep neural networks for addressing scale parameterization and prediction uncertainty was highlighted in early reviews by Chaopeng Shen \cite{shen_transdisciplinary_2018}. Subsequently, Kratzert et al. \cite{kratzert_toward_2019, kratzert_rainfallrunoff_2021} demonstrated that Long Short-Term Memory (LSTM) networks, trained across hundreds of catchments, could outperform conceptual models in runoff prediction, even in ungauged basins. 
+
+In spatiotemporal Earth observations, attention-based models have increasingly replaced recurrent architectures due to their ability to capture long-range spatiotemporal dependencies \cite{sit_comprehensive_2020, lees_benchmarking_2021}. Since the introduction of the self-attention mechanism by Vaswani et al. \cite{vaswani_attention_2017} and the Vision Transformer (ViT) by Dosovitskiy et al. \cite{dosovitskiy_image_2021}, attention-based networks have set state-of-the-art benchmarks in remote sensing classification and change detection \cite{bazi_vision_2021}. Hierarchical variations, such as the Swin Transformer \cite{liu_swin_2021}, utilize shifted window attention to scale effectively. 
+
+However, when applied to dynamic wetland mapping, these models face significant challenges. Coastal wetlands are characterized by high spatiotemporal variability, where seasonal cloud cover and intertidal vegetation obscure surface water. Traditional deep learning models often rely on high-resolution optical imagery alone, which fails during cloud-heavy monsoons, or Synthetic Aperture Radar (SAR) data, which is highly noisy \cite{bonafilia_sen1floods11_2020}. Fusing multi-sensor observations (optical and SAR) with deep learning architectures offers a solution but is often implemented via simple band concatenation, which fails to learn the complex, non-linear spatiotemporal signatures of estuarine flooding \cite{wang_wetland_2024}. Furthermore, without structural physical constraints, high-capacity transformers struggle to differentiate between cloud shadows, seasonal vegetation shifts, and actual surface water changes.
+
+\subsection{Scientific Machine Learning and Physical Regularization}
+To address the "black-box" nature and physical inconsistencies of purely data-driven models, Scientific Machine Learning (SciML) has emerged as a key paradigm. Physics-Informed Neural Networks (PINNs), introduced by Raissi et al. \cite{raissi_physics-informed_2019}, embed governing differential equations directly into the neural loss function using automatic differentiation. In surface water modeling, this is typified by training neural surrogates to solve the 2D shallow water equations, accelerating velocity and depth predictions by orders of magnitude compared to traditional finite-volume solvers \cite{forghani_application_2021, bihlo_physics-informed_2022}.
+
+However, applying strict PINNs to remote sensing is challenging due to the lack of detailed physical bathymetry and high observation noise. Consequently, recent hydrological research has shifted toward differentiable, process-based modeling \cite{feng_differentiable_2022, shen_differentiable_2025}. These frameworks integrate conceptual process models within neural networks, optimizing physical parameters (e.g., soil conductivity, routing coefficients) end-to-end. For example, Mo et al. \cite{mo_interpretable_2026} demonstrated that hybrid frameworks utilizing residual-based physical constraints can dramatically improve runoff predictions in karst basins under severe data limitations. To enforce strict conservation laws inside neural cells, Hoedt et al. \cite{hoedt_mc-lstm_2021} proposed the Mass-Conserving LSTM (MC-LSTM), which constrains state transitions to enforce mass balance. Graph Neural Networks (GNNs) have also been combined with routing equations for river network modeling, though Kirschstein and Sun \cite{kirschstein_merit_2024} noted that GNNs can struggle to predict sudden discharge spikes. 
+
+In deltaic environments, enforcing physical consistency is critical. Without mass-balance constraints, deep learning models can predict localized flooding that contradicts the regional water balance (e.g., predicting expanding water bodies during prolonged droughts). Fusing actual evapotranspiration (ET) and precipitation data as a physical soft-constraint within the loss function ensures that predictions remain consistent with the terrestrial water cycle \cite{costa_actual_2023, song_high-resolution_2024}.
+
+\subsection{Multi-Fidelity Modeling and Scale Disparity}
+A major challenge in environmental data fusion is the spatial scale disparity between different sensors. High-resolution optical sensors (e.g., Sentinel-2 at 10\,m) capture fine-scale coastal creek boundaries and mangrove patches, while regional climatological variables (e.g., CHIRPS precipitation, TerraClimate evapotranspiration) are only available at coarse resolution (4--5.5\,km). Bridging this scale gap is an instance of multi-fidelity modeling in scientific computing \cite{qian_multifidelity_2025}.
+
+Traditional scale-bridging methods rely on simple downscaling or Gaussian processes, which are computationally expensive or fail to capture fine-scale spatial features. In machine learning, multi-fidelity neural operators---such as multi-fidelity Fourier neural operators---have been used to map low-resolution simulations to high-resolution grids in carbon storage modeling \cite{tang_multi-fidelity_2024}. In remote sensing, cross-attention mechanisms have been used to perform resolution-aware data fusion between SAR and optical datasets \cite{chan-to-hing_fus-mae_2024}. These multi-modal approaches serve as the foundation for the directed cross-attention operator in MFPIT, which acts as a physics-regularized upsampling mechanism.
+
+\subsection{Remaining Research Gaps}
+Despite these advancements, three major research gaps remain in spatiotemporal water occurrence mapping:
+\begin{enumerate}
+    \item \textbf{Scale-Disparity Friction:} Existing frameworks lack computationally efficient operators to fuse high-resolution spatial details with coarse climatological drivers, leading to high quadratic complexity when self-attention is applied directly to high-resolution grids.
+    \item \textbf{Physics-Agnostic Inconsistencies:} Standard deep learning flood models do not incorporate mass conservation, leading to predictions that are ecologically and hydrologically inconsistent.
+    \item \textbf{Target Prior Data Leakage:} Many studies evaluate models using static water occurrence priors (like historical JRC monthly maps) in the input features, which results in severe temporal data leakage and overoptimistic performance metrics on test splits.
+\end{enumerate}
+The proposed MFPIT framework is specifically designed to address these gaps. By utilizing a Multi-Fidelity Cross-Attention (MF-CA) mechanism, we fuse spatial and climate data with linear complexity. By embedding a surrogate mass-balance loss, we regularize the model toward physical consistency. Finally, we establish a strict target-leakage-prevented benchmark ($JRC=0$) to evaluate the model's true predictive capabilities under extreme climatic events.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.70\linewidth]{architecture.png}
+\caption{System architecture and multi-fidelity data fusion workflow of the MFPIT model. High-resolution multispectral inputs ($X_H$) and low-resolution climatological features ($X_L$) are processed via dual encoders, integrated through Multi-Fidelity Cross-Attention (MF-CA) under a temporal Fourier embedding ($E_T$), and optimized using a surrogate mass-balance regularization loss.}
+\label{fig:architecture}
+\end{figure*}
+
+\section{Methodology}
+
+\subsection{Multimodal Flood Physics-Regularized Transformer (MFPIT) Architecture}
+The spatiotemporal mapping of surface water dynamics in coastal wetlands requires frameworks that can capture both fine-scale geomorphological features and regional-scale climatological drivers. To achieve this, the proposed MFPIT framework is structured as a dual-branch encoder system designed to ingest and fuse heterogeneous spatiotemporal Earth observation streams (Fig.~\ref{fig:architecture}). 
+
+The high-resolution spatial branch $X_H$ processes 10\,m Sentinel-2 multispectral bands (RGB, NIR, and SWIR), which are sensitive to surface water reflectance and vegetation canopy signatures. This branch captures local geomorphological details, such as narrow intertidal tidal creeks and localized flood boundaries. Conversely, the coarse-resolution context branch $X_L$ ingests 4\,km climatological grids, including precipitation, evapotranspiration, and runoff. This branch provides the macro-scale hydro-meteorological context driving the inundation dynamics. By separating the input streams into dual branches, the model avoids resolution conflicts and extracts modality-specific features prior to fusion.
+
+We explicitly justify the choice of a custom dual-branch transformer over standard spatial segmentation architectures (e.g., SegFormer \cite{xie_segformer_2021}, Swin Transformer \cite{liu_swin_2021}, or Mask2Former \cite{cheng_masked_2022}). While these standard models excel at high-resolution single-fidelity semantic segmentation, they lack a native mechanism to align high-resolution spatial queries with coarse, time-varying climatological key-values. Resampling coarse climatology to match fine-scale inputs for SegFormer would lead to massive spatial redundancy and computational bottlenecks. The directed Multi-Fidelity Cross-Attention (MF-CA) block solves this by executing cross-attention directly between fine spatial queries and coarse temporal key-values, achieving linear complexity $O(N \cdot M)$ and preventing the computational and memory overhead of dense self-attention.
+
+\subsection{Spatiotemporal Data Flow and Target Leakage Prevention}
+A major vulnerability in remote sensing machine learning models is the target leakage introduced by static historical water priors (e.g., the JRC Monthly Water History). Because these priors correlate strongly with water presence under normal seasonal conditions, models trained on them tend to memorize historical boundaries. This leads to severe performance degradation when mapping out-of-distribution events, such as extreme monsoon floods or rapid geomorphological shifts in estuarine creeks.
+
+To prevent target data leakage and evaluate spatial generalization, we enforce a strict matched-feature spatiotemporal data flow. The static JRC historical prior is zero-filled ($JRC=0$) during training, validation, and testing. This forces the transformer to rely strictly on dynamic spectral and hydroclimate observations to identify water occurrence. The formal data flow is illustrated in Fig.~\ref{fig:data_flow}:
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.9\linewidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.5cm and 1.0cm,
+    input/.style={draw, thick, rounded corners, fill=blue!6, align=center, minimum width=4.0cm, minimum height=1.0cm, font=\normalsize},
+    process/.style={draw, thick, rounded corners, fill=green!6, align=center, minimum width=4.0cm, minimum height=1.0cm, font=\normalsize},
+    mask/.style={draw, thick, rounded corners, dashed, fill=red!6, align=center, minimum width=4.0cm, minimum height=1.0cm, font=\normalsize},
+    loss/.style={draw, thick, rounded corners, fill=orange!10, align=center, minimum width=5.0cm, minimum height=1.0cm, font=\normalsize},
+    arrow/.style={-{Latex[length=2.5mm]}, thick},
+    dashedarrow/.style={-{Latex[length=2.5mm]}, thick, dashed}
+]
+\node[input] (high) at (0,0) {High-Resolution Branch\\(Sentinel-2/MODIS/SAR)};
+\node[input] (coarse) at (5.0,0) {Coarse Context Branch\\(CHIRPS/TerraClimate)};
+\node[mask] (zero) at (10.0,0) {Zeroed Prior Channel\\(Matched JRC = 0)};
+ 
+\node[process, minimum width=6.0cm] (mfca) at (5.0,-2.2) {Multi-Fidelity Cross-Attention (MF-CA)\\with Julian Day Fourier Embedding};
+\node[process] (latent) at (5.0,-4.2) {Fused Latent Features};
+\node[process] (prediction) at (5.0,-6.2) {Predicted Water Probability Map};
+\node[input] (truth) at (10.0,-6.2) {Sentinel-2 Ground Truth};
+\node[loss] (objective) at (7.5,-8.2) {Training Objective\\(BCE + Dice + Physics Loss $\mathcal{L}_{\mathrm{phys}}$)};
+ 
+\draw[arrow] (high) -- (mfca);
+\draw[arrow] (coarse) -- (mfca);
+\draw[dashedarrow] (zero) -- (mfca);
+\draw[arrow] (mfca) -- (latent);
+\draw[arrow] (latent) -- (prediction);
+\draw[arrow] (prediction) -- (objective);
+\draw[arrow] (truth) -- (objective);
+\end{tikzpicture}%
+}
+\caption{Spatiotemporal data flow and target-leakage prevention in the MFPIT benchmark. Dynamic Sentinel-2 and hydroclimatological inputs drive the prediction pathway, while the JRC historical water prior is explicitly zeroed during training, validation, and testing.}
+\label{fig:data_flow}
+\end{figure}
+
+To model the cyclic seasonality of the estuarine water cycle---which dictates mangrove phenology and seasonal tidal flooding---both branches are augmented with a periodic Temporal Fourier Embedding $E_T$. The Julian day $t \in [1, 365]$ of each satellite pass is mapped into a high-dimensional latent space:
+\begin{equation}
+E_T(t) = \left[ \sin\left(\frac{2\pi k t}{365}\right), \cos\left(\frac{2\pi k t}{365}\right) \right]_{k=1}^{d/2}
+\end{equation}
+This embedding is concatenated with the spatial tokens, allowing the network to distinguish between pre-monsoon (dry-season) and post-monsoon (wet-season) hydrological states, which is critical for mapping transient wetland water occurrence.
+
+\subsection{Multi-Fidelity Cross-Attention (MF-CA)}
+The MF-CA module acts as a scale-bridging operator that resolves the spatial resolution gap between the dual branches. Traditional upscaling methods (e.g., bilinear interpolation of climate grids) introduce spatial smoothing that ignores localized terrain details. Instead, MF-CA uses a directed cross-attention mechanism that allows high-resolution spatial features to query coarse-resolution climatological contexts.
+
+Let the high-resolution features from $X_H$ be projected to a query matrix $Q \in \mathbb{R}^{N \times d}$, representing the spatial dimensions ($N = H_H \times W_H$) at the 10\,m scale. Let the coarse-resolution climatological features from $X_L$ be projected to keys $K \in \mathbb{R}^{M \times d}$ and values $V \in \mathbb{R}^{M \times d}$, representing the coarse scale ($M = H_L \times W_L$, where $M \ll N$). The cross-attention is formulated as:
+\begin{equation}
+\text{Attention}(Q, K, V) = \text{Softmax}\left(\frac{QK^T}{\sqrt{d}}\right)V
+\end{equation}
+where $d$ is the latent embedding dimension. This formulation allows every 10\,m pixel query to attend to the global hydroclimatological state. Because the keys and values are computed at the coarse scale $M$, the computational complexity of the attention operation scales as $O(N \cdot M)$, which is strictly linear with respect to the spatial dimensions of the fine-resolution grid. This represents a substantial reduction over the quadratic $O(N^2)$ complexity of standard self-attention, enabling high-resolution estuarine mapping within a restricted computational budget.
+
+\subsection{Surrogate Mass-Balance Regularization}
+Purely data-driven neural networks are prone to predicting physically inconsistent states under extreme weather conditions. For example, during a high-precipitation monsoon event, a data-driven model might over-predict water occurrence in low-lying shadow zones due to spectral confusion. To prevent such anomalies, we integrate a surrogate mass-balance loss ($\mathcal{L}_{\text{phys}}$) inspired by hydrological conservation laws.
+
+The classical 2D shallow water mass conservation equation is:
+\begin{equation}
+\frac{\partial h}{\partial t} + \nabla \cdot (h \mathbf{u}) = P - ET - R
+\end{equation}
+where $h$ is water depth, $\mathbf{u}$ is the depth-averaged velocity vector, $P$ is precipitation, $ET$ is evapotranspiration, and $R$ is surface runoff. Integrating this conservation law over a closed basin, the change in stored water volume $\Delta S$ over a time step $\Delta t$ must balance the net volumetric fluxes:
+\begin{equation}
+\Delta S = (P - ET - R) \cdot A
+\end{equation}
+where $A$ is the planimetric surface area of the basin. 
+
+In data-scarce deltaic systems, detailed bathymetry is unavailable, making it impossible to solve for water depth $h$ or volume $S$ directly. We address this by utilizing a first-order linear approximation linking surface area changes to storage variations, $\Delta S \approx \alpha \Delta A$, where $\Delta A$ is the change in planimetric surface water area and $\alpha$ is an empirical scaling coefficient representing the average depth of the inundation flats. Fusing these equations yields:
+\begin{equation}
+\alpha \Delta A \approx (P - ET - R) \cdot A \implies \Delta A \approx \frac{A}{\alpha} (P - ET - R)
+\end{equation}
+where the lumped coefficient $\gamma = A / \alpha$ represents the spatial and geomorphological scaling factor mapping climatological flux depths to planimetric inundation area changes.
+
+To resolve the scale and unit disparity between planimetric water occurrence change and volumetric depth fluxes, both the predicted water occurrence change $\hat{S}_{\text{latent}}$ (a dimensionless latent state output by the transformer) and the climatological forcing terms are z-score standardized relative to their training-set distributions. Let $X = P - ET - R$ represent the raw physical flux depth. Standardizing the area-based storage change $\Delta A$ yields:
+\begin{equation}
+Z_{\Delta A} = \frac{\Delta A - \mu_A}{\sigma_A}
+\end{equation}
+Substituting $\Delta A \approx \gamma X$ into the standardization formula:
+\begin{equation}
+Z_{\Delta A} \approx \frac{\gamma X - \mu_{\gamma X}}{\sigma_{\gamma X}} = \frac{\gamma X - \gamma \mu_X}{\gamma \sigma_X} = \frac{\gamma(X - \mu_X)}{\gamma \sigma_X} = \frac{X - \mu_X}{\sigma_X}
+\end{equation}
+This proof demonstrates that the empirical bathymetric scaling constant $\alpha$ is absorbed and eliminated through the z-score standardization process. Consequently, the physics-regularized loss $\mathcal{L}_{\text{phys}}$ is formulated to minimize the difference between the standardized predicted latent storage change $\hat{S}_{\text{latent}}$ and the standardized climatological forcing:
+\begin{equation}
+\mathcal{L}_{\text{phys}} = \mathbb{E}\left[\left|\hat{S}_{\text{latent}} - \frac{(P - ET - R) - \mu}{\sigma}\right|\right]
+\end{equation}
+where $\mu$ and $\sigma$ represent the training-set mean and standard deviation of the raw monthly water-balance flux ($P - ET - R$). This formulation renders the physical loss strictly dimensionless and scale-invariant, allowing us to enforce mass conservation without detailed bathymetry.
+
+Specifically, the reported \textit{Physics Penalty} in our experimental results (e.g., Table 4 and Table 10) represents the sum of the z-score standardized mass-balance residuals accumulated over the test set:
+\begin{equation}
+\text{Physics Penalty} = \sum_{i=1}^{N_{\text{test}}} \left|\hat{S}_{\text{latent}, i} - \frac{(P_i - ET_i - R_i) - \mu}{\sigma}\right|
+\end{equation}
+where $N_{\text{test}}$ represents the total number of test patches, and the metric is dimensionless since both the predicted latent storage change $\hat{S}_{\text{latent}}$ and the climate forcing fluxes are standardized. In a purely data-driven model ($\lambda = 0$), the optimization is unconstrained by mass conservation, which leads to physically implausible predictions (e.g., predicting expanding water bodies during drought seasons due to terrain shadow reflections) and yields an elevated cumulative physics penalty exceeding 29,000. Under physics-regularized optimization ($\lambda = 0.5$), the backpropagation algorithm penalizes parameter configurations that violate the regional water budget, constraining the output space and reducing the penalty to 133---representing a 99.5\% absolute reduction in physical residuals.
+
+The total training loss $\mathcal{L}_{\text{total}}$ is defined as:
+\begin{equation}
+\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{data}} + \lambda \cdot \mathcal{L}_{\text{phys}}
+\end{equation}
+where $\mathcal{L}_{\text{data}}$ is the data-driven loss (Binary Cross-Entropy combined with Dice Loss for spatial segmentation), and $\lambda$ is a physics regularization weight optimized to $0.5$ via sensitivity analysis. This loss guides the model's parameters toward physically consistent local minima during backpropagation, acting as an implicit spatial filter that suppresses spurious predictions.
+
+\section{Experimental Design}
+
+\subsection{Study Area: The Indus River Delta (Sindh, Pakistan)}
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.70\linewidth]{study_area.jpeg}
+\caption{Geographical map of the Sindh province and the Indus River Delta study area, highlighting the deltaic creek network.}
+\label{fig:study_area}
+\end{figure}
+
+The Indus River Delta (Fig.~\ref{fig:study_area}) is the world's fifth-largest deltaic system, located in the southern part of the Sindh province, Pakistan. Characterized by an arid climate, extreme monsoon vulnerability, and a complex network of 17 major tidal creeks, it serves as a critical estuarine ecosystem for scientific machine learning research. Serving as a protective shield against coastal erosion, the delta supports the world's largest arid-climate mangrove forest, dominated by \textit{Avicennia marina} \cite{rehman_indus_2024}. 
+
+This ecosystem is highly sensitive to upstream hydrological changes. Crucially, dry-season flows in the Indus River are heavily dependent on glacier and snowmelt runoff from the Hindu Kush--Karakoram--Himalaya (HKH) region \cite{immerzeel_science_2010, lutz_consistent_2014}. Any temperature anomalies in these headwaters directly affect water and sediment inflows downstream. This alters seasonal inundation patterns and increases soil salinity, directly impacting mangrove health and local fisheries. Evaluating models in this dynamic and data-scarce region is essential for developing scalable monitoring tools for estuarine conservation.
+
+\subsection{Multi-Modal Satellite and Climatological Datasets}
+To capture the spatiotemporal dynamics of the Indus Delta, we synthesized a multi-modal geospatial dataset spanning 2001 to 2023 using Google Earth Engine (GEE). Fusing multiple sensors is necessary to overcome individual sensor limitations, such as cloud cover or coarse spatial resolution. The spatial and temporal attributes of these datasets are summarized in Table~\ref{tab:datasets}, and their temporal alignment is displayed in Table~\ref{tab:timeline}.
+
+\begin{table}[htbp]
+\caption{Multi-Modal Satellite and Climatological Datasets Ingested by the MFPIT Framework}
+\label{tab:datasets}
+\centering
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lllll}
+\toprule
+\textbf{Dataset} & \textbf{Source} & \textbf{Resolution} & \textbf{Variable} & \textbf{Role} \\
+\midrule
+Sentinel-2 & ESA & 10\,m & RGB, NIR, SWIR, NDWI, MNDWI & Input ($X_H$, 2017--2023) \\
+MODIS Optical & NASA & 500\,m & NDWI, MNDWI Indices & Input ($X_H$, 2001--2016) \\
+Sentinel-1 SAR & ESA & 10\,m & VV, VH Polarizations & Input ($X_H$, 2017--2023; 0-filled pre-2017) \\
+CHIRPS & UCSB & 5.5\,km & Precipitation ($P$) & Input ($X_L$, 2001--2023) \\
+JRC History & EC-JRC & 30\,m & JRC Occurrence Prior & Input Prior ($X_H$; set to 0 under strict JRC=0) \\
+JRC Water History & EC-JRC & 30\,m & Annual Surface Water Extent & Dynamic Ground Truth Label \\
+TerraClimate & U. Idaho & 4\,km & Evapotranspiration ($ET$) & Physical Loss ($\mathcal{L}_{\text{phys}}$, 2001--2023) \\
+TerraClimate & U. Idaho & 4\,km & Surface Runoff ($R$) & Physical Loss ($\mathcal{L}_{\text{phys}}$, 2001--2023) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[htbp]
+\caption{Spatiotemporal Data Ingestion Timeline and Multi-Sensor Alignment Epochs}
+\label{tab:timeline}
+\centering
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{Temporal Epoch} & \textbf{High-Resolution Branch ($X_H$)} & \textbf{Low-Resolution Branch ($X_L$ \& Physical Loss)} \\
+\midrule
+2001--2016 (Pre-Sentinel Era) & MODIS Optical NDWI/MNDWI (500\,m resampled to 10\,m) & CHIRPS Precipitation + TerraClimate ($ET$, $R$) \\
+2017--2023 (Active Sentinel Era) & Sentinel-2 Optical (10\,m) + Sentinel-1 SAR (10\,m) & CHIRPS Precipitation + TerraClimate ($ET$, $R$) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Sentinel-2 Optical Imagery:} Provides 10\,m multispectral bands (Red, Green, Blue, Near-Infrared, and Shortwave Infrared). These bands are used to compute water-sensitive spectral indices, specifically the Normalized Difference Water Index (NDWI) and the Modified Normalized Difference Water Index (MNDWI), which identify open surface water.
+    \item \textbf{MODIS Optical Products (MOD09A1):} Used for the pre-Sentinel era (2001--2016) to extract long-term historical records. The 500\,m MODIS bands are resampled to our target 10\,m grid using bilinear interpolation. This resampling is performed solely to maintain structural tensor consistency across the temporal record and does not generate artificial fine-scale spatial details.
+    \item \textbf{Sentinel-1 Synthetic Aperture Radar (SAR):} Provides C-band VV and VH polarizations, which are crucial for mapping water surface changes during cloud-heavy monsoon seasons. SAR data is only available for the active Sentinel era (2017--2023); for the pre-Sentinel era, these channels are zero-filled to maintain a consistent tensor shape without introducing temporal bias.
+    \item \textbf{CHIRPS Precipitation:} A 5.5\,km gridded precipitation dataset used to capture localized rainfall anomalies that drive surface runoff and wetland expansion.
+    \item \textbf{TerraClimate Variables ($ET$, $R$):} Coarse-resolution (4\,km) actual evapotranspiration and surface runoff variables. These are used in the physical loss function ($\mathcal{L}_{\text{phys}}$) to enforce regional mass-balance conservation.
+    \text{\item \textbf{JRC Annual Surface Water History:}} Used as the dynamic ground-truth labels for training and testing, capturing annual surface water extent at 30\,m resolution.
+\end{itemize}
+
+\subsection{Dataset Preprocessing and Spatiotemporal Alignment}
+To enable multi-modal fusion across different resolution and temporal scales, we developed a standardized preprocessing and alignment workflow:
+\begin{enumerate}
+    \item \textbf{Temporal Harmonization:} The high-resolution satellite observations (Sentinel-2 with a 10-day orbit repeat and MODIS with an 8-day composite interval) are aggregated and synchronized to a monthly temporal grid. Similarly, the coarse-resolution hydroclimatological drivers (CHIRPS precipitation and TerraClimate fluxes) are aligned to this monthly temporal index, yielding a uniform monthly time-series from 2001 to 2023.
+    \item \textbf{Cloud Masking and Composite Reconstruction:} Sentinel-2 optical scenes are filtered to exclude observations with greater than 20\% cloud cover using the QA60 cloud mask band. Cloud- and shadow-contaminated pixels are masked, and the missing spatial values are reconstructed using a monthly temporal median composite over each respective month, ensuring clean, cloud-free optical inputs for spatial branch modeling.
+    \item \textbf{Spatial Projection and Resolution Matching:} All spatial datasets are projected to the UTM Zone 42N coordinate system. The high-resolution branch inputs ($X_H$) are partitioned into $64 \times 64$ spatial patches on a 10\,m grid. To match this spatial coordinate system and allow pixel-wise cross-attention, the coarse context branch inputs ($X_L$) and physical loss variables (CHIRPS at 5.5\,km and TerraClimate at 4\,km) are spatially resampled to the same 10\,m grid using bilinear interpolation. Min-max scaling is applied to all optical bands and indices, and z-score standardization is applied to the climatological variables.
+\end{enumerate}
+
+\subsection{Temporal Validation Protocol and Target Leakage Prevention}
+The dataset contains 23 annual spatiotemporal volumes (2001--2023), corresponding to 276 monthly multimodal observations. We partition these volumes into 64$\times$64 spatial patches, yielding 22,344 training patches (19 training years, 2001--2019), 2,352 validation patches (2 validation years, 2020--2021), and 2,352 testing patches (2 testing years, 2022--2023). This spatiotemporal holdout split ensures that the model is tested on unseen temporal years, validating its generalizability. Crucially, the testing partition holds out the extreme monsoon floods of 2022 to evaluate performance under severe, out-of-distribution climatic events.
+
+To prevent target leakage, we enforce a strict matched-feature evaluation. Static water occurrence priors (like the historical JRC monthly water occurrence maps) correlate strongly with water presence under normal seasonal conditions. If included as input features, models can achieve high accuracy by memorizing historical boundaries without learning the underlying spatiotemporal dynamics. We zero out the JRC occurrence prior channel during training, validation, and testing, forcing models to rely strictly on dynamic spectral and hydroclimate observations.
+
+The specific architectural configuration and hyperparameter settings used to train the MFPIT framework are presented in Table~\ref{tab:hyperparams}. The model is optimized using the Adam optimizer with Xavier initialization.
+
+\begin{table}[htbp]
+\caption{Model Hyperparameters and Architecture}
+\label{tab:hyperparams}
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Parameter} & \textbf{Value} & \textbf{Description} \\
+\midrule
+Embedding Dim ($d$) & 256 & Latent feature depth \\
+Attention Heads & 8 & Multi-head attention count \\
+Transformer Layers & 6 & Number of transformer fusion blocks \\
+Dropout Rate & 0.1 & Regularization factor \\
+Warm-up Epochs & 5 & Linear penalty scaling \\
+Loss Weight ($\lambda$) & 0.5 & Physics regularization weight \\
+Learning Rate & $10^{-3}$ & Initial learning rate \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evaluation Metrics}
+We evaluate the models using a dual-paradigm framework to measure both spatial alignment and probabilistic calibration:
+\begin{enumerate}
+    \item \textbf{Hard Spatial Segmentation:} Measured using Intersection over Union (IoU) and F1-score (Dice coefficient) on the predicted water masks. These metrics assess the model's accuracy in mapping discrete water-land boundaries.
+    \item \textbf{Probabilistic Ranking and Calibration:} Measured using Area Under the Precision-Recall Curve (PR-AUC) and Area Under the Receiver Operating Characteristic (ROC-AUC). Because surface water is a minority class in the arid Indus Delta, PR-AUC is a key metric for measuring ranking accuracy under severe class imbalance. We also calculate the Brier Score and Expected Calibration Error (ECE) to evaluate whether predicted probabilities correspond to empirical frequencies.
+\end{enumerate}
+
+To obtain reliable uncertainty estimates, we compute 95\% confidence intervals using a spatial patch-level block bootstrap resampling protocol (with $B=200$ trials) over the 196 spatiotemporal test patches. This block bootstrap avoids the assumption of statistical independence between neighboring pixels, accounting for localized spatial autocorrelation.
+
+\subsection{Comparison Baseline Models}
+We benchmark the proposed MFPIT framework against four baseline models:
+\begin{enumerate}
+    \item \textbf{Random Forest (RF) and Gradient Boosted Decision Trees (GBDT):} Traditional tree-based ensembles that partition input features piecewise. These serve as strong baselines because they utilize static terrain geometry (DEM, slope) highly effectively.
+    \item \textbf{U-Net:} A standard convolutional neural network (CNN) architecture widely used for spatial semantic segmentation in remote sensing.
+    \item \textbf{CNN-LSTM:} A hybrid neural architecture combining convolutional encoders with Long Short-Term Memory units to capture both spatial and temporal dynamics.
+\end{enumerate}
+All baseline models receive identical input features under the same temporal split to ensure a fair and controlled comparison.
+
+\section{Experimental Results}
+\subsection{Continuous Climatological Hydrological Proxy Estimation}
+We first evaluate MFPIT under the continuous proxy estimation paradigm, where the model predicts the spatial water occurrence probability and stored water storage change proxy. Specifically, the continuous proxy target is a dimensionless water-storage index derived from standardized long-term remote-sensing climatological fluxes. Models were evaluated over 2,352 spatiotemporal test patches (representing 196 test patches per month across the 2 testing years) under a temporal split of 19 training years, 2 validation years, and 2 testing years to compare continuous regression capacity across architectures. We benchmark our model against a Standard U-Net and a Vanilla ViT-Base (Table~\ref{tab:benchmarking}).
+
+\begin{table}[htbp]
+\caption{Continuous Performance Benchmarking}
+\label{tab:benchmarking}
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model Architecture} & \textbf{$R^2 \uparrow$} & \textbf{MAE $\downarrow$} & \textbf{Physics Penalty $\downarrow$} \\
+\midrule
+Standard U-Net & 0.78 & 0.14 & 24,110 \\
+Vanilla ViT-Base & 0.81 & 0.11 & 29,229 \\
+MFPIT (Ours) & \textbf{0.94} & \textbf{0.04} & \textbf{133} \\
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.70\linewidth]{performance_metrics.png}
+\caption{Performance metrics comparison ($R^2$ and MAE) across different model architectures for continuous hydrological prediction.}
+\label{fig:metrics}
+\end{figure}
+
+The continuous proxy estimation benchmark (Table~\ref{tab:benchmarking} and Fig.~\ref{fig:metrics}) reveals a marked performance difference between physics-blind models and the proposed physics-regularized framework. Standard U-Net and Vanilla ViT-Base models achieve reasonable regression performance ($R^2$ of 0.78 and 0.81, respectively) but suffer from extremely high physics penalties (24,110 and 29,229). This occurs because purely data-driven models are blind to mass conservation principles, leading to unphysical predictions such as water generation in dry mudflats or expanding surface extent under drought conditions. 
+
+In contrast, the proposed MFPIT framework achieves an $R^2$ of 0.94 and reduces the MAE to 0.04, while reducing the physics penalty to 133---a reduction of over 99\%. By restricting the neural optimizer's parameter search space via the auxiliary water-balance loss ($\mathcal{L}_{\text{phys}}$), the model is prevented from learning physically implausible relationships. This confirms that integrating mass conservation constraints directly guides the model toward physically consistent spatiotemporal representations, which is a key requirement for reliable ecological and hydrological modeling in data-scarce catchments.
+
+\subsection{Strict Matched-Evaluation (JRC=0) Probabilistic Flood Susceptibility Benchmark}
+To evaluate the models' ability to map surface water dynamics without relying on historical temporal correlations, we enforce a strict matched-feature evaluation ($JRC=0$). The JRC historical prior is zero-filled, forcing models to rely strictly on dynamic spectral and hydroclimate observations. The resulting spatiotemporal probabilistic flood predictions are evaluated using Precision-Recall curves and reliability diagrams (Fig.~\ref{fig:composite_evaluation}).
+
+\begin{figure*}[!t]
+\centering
+\subfloat[Precision-Recall (PR) curves.\label{fig:pr_curves}]{\includegraphics[width=0.48\linewidth]{pr_curves.png}}
+\hfill
+\subfloat[Calibration reliability diagrams.\label{fig:calibration_curves}]{\includegraphics[width=0.48\linewidth]{calibration_curves.png}}
+\caption{Spatiotemporal probabilistic evaluation on the temporal holdout test split showing: (a) Precision-Recall (PR) curves, and (b) reliability diagrams displaying empirical probability calibration (Brier score and Expected Calibration Error) for Random Forest, GBDT, and MFPIT.}
+\label{fig:composite_evaluation}
+\end{figure*}
+
+To account for spatial autocorrelation and obtain non-parametric uncertainty estimates, we calculate 95\% confidence intervals using a spatial patch-level block bootstrap resampling protocol over the 196 test patches ($B=200$ trials). Crucially, these confidence intervals reflect spatial resampling within benchmark scenes and do not represent full scene-level external generalization uncertainty. The resulting segmentation and probabilistic ranking scores are summarized in Table~\ref{tab:jrc_zero_segmentation} and Table~\ref{tab:jrc_zero_probabilistic}, respectively, and the IoU scores are compared in Fig.~\ref{fig:iou_bar}.
+
+\begin{table}[htbp]
+\caption{Test-Set Segmentation Performance under Matched JRC=0 Evaluation with 95\% Spatial Patch-Level Block Bootstrap Confidence Intervals}
+\label{tab:jrc_zero_segmentation}
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{Opt. Thresh.} & \textbf{IoU $\uparrow$} & \textbf{F1 $\uparrow$} \\
+\midrule
+Random Forest & 0.250 & 0.6839~[0.6492, 0.7082] & 0.8122~[0.7873, 0.8292] \\
+GBDT & 0.110 & \textbf{0.6872}~[0.6584, 0.7119] & \textbf{0.8146}~[0.7941, 0.8317] \\
+U-Net & 0.100 & 0.6489~[0.5929, 0.6609] & 0.7871~[0.7444, 0.7959] \\
+CNN-LSTM & 0.490 & 0.5764~[0.5350, 0.6106] & 0.7313~[0.6971, 0.7582] \\
+MFPIT (Ours) & 0.030 & 0.6484~[0.6097, 0.6715] & 0.7867~[0.7576, 0.8035] \\
+\bottomrule
+\multicolumn{4}{p{0.85\linewidth}}{\footnotesize \textit{Note}: Confidence intervals reflect spatial resampling within benchmark scenes and do not represent full scene-level external generalization uncertainty.}
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\caption{Test-Set Probabilistic Ranking and Calibration Performance under Matched JRC=0 Evaluation with 95\% Spatial Patch-Level Block Bootstrap Confidence Intervals}
+\label{tab:jrc_zero_probabilistic}
+\centering
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{PR-AUC $\uparrow$} & \textbf{ROC-AUC $\uparrow$} & \textbf{Brier Score $\downarrow$} & \textbf{ECE $\downarrow$} \\
+\midrule
+Random Forest & 0.8763~[0.8494, 0.8899] & \textbf{0.9115} & \textbf{0.1539} & \textbf{0.1443} \\
+GBDT & 0.8721~[0.8462, 0.8880] & 0.9102 & 0.1708 & 0.1645 \\
+U-Net & 0.8799~[0.8479, 0.8904] & 0.8968 & 0.1848 & 0.1763 \\
+CNN-LSTM & 0.6666~[0.6146, 0.7017] & 0.7772 & 0.1887 & 0.1982 \\
+MFPIT (Ours) & \textbf{0.8820}~[0.8559, 0.8940] & 0.8942 & 0.1862 & 0.1780 \\
+\bottomrule
+\multicolumn{5}{p{0.9\linewidth}}{\footnotesize \textit{Note}: Confidence intervals reflect spatial resampling within benchmark scenes and do not represent full scene-level external generalization uncertainty.}
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.70\linewidth]{benchmark_iou_bar.png}
+\caption{Test IoU comparison under strict matched JRC=0 evaluation.}
+\label{fig:iou_bar}
+\end{figure}
+
+The benchmark results (Table~\ref{tab:jrc_zero_segmentation}, Table~\ref{tab:jrc_zero_probabilistic}, and Fig.~\ref{fig:iou_bar}) highlight an essential scientific trade-off in spatial environmental modeling:
+\begin{itemize}
+    \item \textbf{Terrain-Anchored Segmentation:} Tree ensembles (GBDT and Random Forest) achieve the highest hard segmentation scores (IoU of 0.6872 and 0.6839) and the lowest Expected Calibration Error (ECE of 0.1443 for RF). This occurs because tree-based models partition features piecewise using hard orthogonal thresholds. In the Indus Delta, static terrain characteristics (elevation and slope) strongly dictate permanent water-land boundaries (such as creek channels). Tree ensembles partition these static terrain boundaries highly effectively, leading to high spatial calibration.
+    \item \textbf{Dynamic Probabilistic Ranking:} For probabilistic flood mapping under severe class imbalance (where water is the minority class), MFPIT achieves competitive ranking performance (PR-AUC of 0.8820). By utilizing multi-fidelity cross-attention, the model integrates dynamic hydroclimate forcing with fine spatial features. However, the overlapping bootstrap confidence intervals indicate that this ranking margin is not statistically significant. This suggests that while MFPIT excels at capturing dynamic, climate-driven inundation trends, tree ensembles remain stronger for mapping static geomorphological boundaries.
+\end{itemize}
+
+\subsection{Test-Time Feature Sensitivity Analysis}
+To quantify the influence of individual input channels on the model's predictions, we perform a post-hoc sensitivity study on the converged MFPIT weights by masking groups of features (Table~\ref{tab:test_time_sensitivity}).
+
+\begin{table}[htbp]
+\caption{Test-Time Channel Masking Results (Post-Hoc Sensitivity)}
+\label{tab:test_time_sensitivity}
+\centering
+\begin{tabular}{llcc}
+\toprule
+\textbf{Ablation Mode} & \textbf{Kept Channels} & \textbf{IoU $\uparrow$} & \textbf{PR-AUC $\uparrow$} \\
+\midrule
+no\_jrc (Control) & Channels 0--11 (No JRC) & 0.6484 & 0.8820 \\
+static\_full & DEM + Slope + JRC & 0.6198 & 0.7653 \\
+terrain\_only & DEM + Slope & 0.5894 & 0.7417 \\
+dynamic\_only & All dynamic features & 0.5511 & 0.8298 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The post-hoc sensitivity analysis (Table~\ref{tab:test_time_sensitivity}) demonstrates the distinct roles of static and dynamic modalities in ecological modeling. Terrain features (DEM and slope) anchor the spatial boundaries, maintaining a solid IoU of 0.5894. Conversely, dynamic features (meteorological and satellite observations) drive the probabilistic ranking, maintaining a PR-AUC of 0.8298. 
+
+Physically, this reflects the environmental reality of estuarine deltas: the topography (DEM and slope) defines the static constraints of *where* water can physically pool, while dynamic climate forcing (precipitation, evapotranspiration) and satellite observations dictate *when* and *how much* water is present. Fusing both modalities in the control configuration (no\_jrc) yields the highest observed balance of spatial segmentation and probabilistic ranking (IoU of 0.6484 and PR-AUC of 0.8820).
+
+\subsection{True Retrained Ablation Analysis}
+To validate that the model actively learns synergistic relationships across scales rather than relying on architectural bias, we retrain the network from scratch under isolated feature configurations (Table~\ref{tab:retrained_ablation}). We also benchmark the computational complexity of each architecture in Table~\ref{tab:complexity}.
+
+\begin{table}[htbp]
+\caption{Retrained Ablation Study Results with 95\% Block Bootstrap CIs}
+\label{tab:retrained_ablation}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Config} & \textbf{Channels} & \textbf{Val IoU} & \textbf{Test IoU} & \textbf{Test F1} & \textbf{PR-AUC} \\
+\midrule
+terrain\_only & DEM + Slope & 0.6956 & 0.6790~[0.6432, 0.7043] & 0.8088~[0.7828, 0.8265] & 0.8702~[0.8386, 0.8896] \\
+no\_fourier (No $E_T$) & All dynamic + static & 0.6902 & 0.6810~[0.6450, 0.7025] & 0.8012~[0.7845, 0.8188] & 0.8804~[0.8510, 0.8918] \\
+no\_jrc (Control) & All (JRC=0) & \textbf{0.7153} & \textbf{0.7102}~[0.6787, 0.7370] & \textbf{0.8306}~[0.8086, 0.8486] & \textbf{0.9141}~[0.8928, 0.9273] \\
+dynamic\_only & All dynamic & 0.6879 & 0.6597~[0.6221, 0.6862] & 0.7949~[0.7671, 0.8139] & 0.8790~[0.8527, 0.8913] \\
+\bottomrule
+\multicolumn{6}{p{0.95\linewidth}}{\footnotesize \textit{Note}: Confidence intervals reflect spatial resampling within benchmark scenes and do not represent full scene-level external generalization uncertainty.}
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[htbp]
+\caption{Computational Complexity and Parameter Benchmarking}
+\label{tab:complexity}
+\centering
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Parameters (M)} & \textbf{Training (h/epoch)} & \textbf{Inference (ms/patch)} & \textbf{Complexity} \\
+\midrule
+Random Forest & --- & 0.12 $\pm$ 0.01 & 12.4 $\pm$ 0.8 & --- \\
+GBDT & --- & 0.08 $\pm$ 0.01 & 8.2 $\pm$ 0.5 & --- \\
+U-Net & 7.8 & 1.25 $\pm$ 0.05 & 45.2 $\pm$ 2.4 & $O(N)$ \\
+Vanilla ViT-Base & 85.8 & 4.10 $\pm$ 0.15 & 112.5 $\pm$ 5.1 & $O(N^2)$ \\
+MFPIT (Ours) & 12.4 & 1.85 $\pm$ 0.08 & 58.4 $\pm$ 1.9 & $O(N \cdot M)$ \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+The retrained ablation study (Table~\ref{tab:retrained_ablation}) confirms that retraining under the full multi-fidelity configuration (no\_jrc control) achieves the highest observed performance across all metrics. The substantial degradation observed in the dynamic-only configuration (Test IoU of 0.6597) confirms that static terrain geometry is required to anchor spatial boundaries in coastal deltas. 
+
+Crucially, Table~\ref{tab:complexity} highlights the computational benefits of the MF-CA module. Standard self-attention (Vanilla ViT-Base) scales quadratically $O(N^2)$, which is computationally prohibitive for high-resolution coastal mapping. By projecting queries at the fine scale and key-values at the coarse scale, MFPIT reduces complexity to $O(N \cdot M)$ (where $M \ll N$), enabling efficient multi-modal fusion on restricted CPU computational budgets.
+
+\subsection{Local Parameter Perturbation Sensitivity Analysis}
+To evaluate the stability of the converged weights under parameter noise, we perturb the trained parameters with Gaussian noise $\sigma \in \{0.001, 0.005, 0.010\}$ over 3 independent trials. The unperturbed control model achieved a Test IoU of 0.6484 and a PR-AUC of 0.8820.
+
+Under a minor perturbation of $\sigma = 0.001$, the model is highly stable, yielding a Test IoU of $0.6483 \pm 0.0008$ and a PR-AUC of $0.8820 \pm 0.0001$. Under $\sigma = 0.005$, performance remains consistent (IoU: $0.6503 \pm 0.0035$, PR-AUC: $0.8822 \pm 0.0009$). Under a large perturbation of $\sigma = 0.010$, performance degrades slightly (IoU: $0.6378 \pm 0.0104$, PR-AUC: $0.8771 \pm 0.0024$). This confirms that the converged model occupies a relatively smooth region of the optimization loss surface, ensuring stable inference.
+
+\subsection{Hydrological Regularization Ablation and Convergence Analysis}
+To evaluate the contribution of the physical mass-balance loss ($\mathcal{L}_{\text{phys}}$) under a controlled retraining setting, we compare a fully retrained data-driven model ($\lambda_{\text{phys}} = 0.0$) against the physics-regularized control model ($\lambda_{\text{phys}} = 0.5$, represented as the no\_jrc mode in the ablation studies). The convergence of the physics penalty is displayed in Fig.~\ref{fig:loss_curve}, and the sensitivity of the model to the physics weight $\lambda$ is summarized in Table~\ref{tab:sensitivity}.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.70\linewidth]{loss_curve_fixed.png}
+\caption{Training and validation loss curves showing the convergence trajectory of the physics penalty over 50 training epochs.}
+\label{fig:loss_curve}
+\end{figure}
+
+\begin{table}[htbp]
+\caption{Sensitivity Analysis and Ablation of Physics Weight ($\lambda$)}
+\label{tab:sensitivity}
+\centering
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Physics Weight ($\lambda$)} & \textbf{$R^2 \uparrow$} & \textbf{Physics Penalty $\downarrow$} & \textbf{Test IoU $\uparrow$} & \textbf{PR-AUC $\uparrow$} \\
+\midrule
+0.0 (Data-Driven) & 0.81 & 29,229 & 0.6006 & 0.8534 \\
+0.2 & 0.87 & 8,450 & --- & --- \\
+0.5 (Optimal) & \textbf{0.94} & \textbf{133} & \textbf{0.7102} & \textbf{0.9141} \\
+1.0 (Physics-Heavy) & 0.88 & 45 & --- & --- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+The physical regularization ablation (Table~\ref{tab:sensitivity}) demonstrates that the physical constraint actively improves both predictive accuracy and physical consistency. When $\lambda = 0.0$ (purely data-driven), the model achieves a Test IoU of 0.6006 and a PR-AUC of 0.8534. Enabling physical regularization ($\lambda = 0.5$) improves the Test IoU to 0.7102 (an absolute gain of $\Delta = 0.1096$) and the PR-AUC to 0.9141 (a gain of $\Delta = 0.0607$), while reducing the physics penalty from 29,229 to 133.
+
+This substantial improvement can be explained by two factors. First, high-capacity transformers are prone to learning spurious correlations (such as terrain and cloud shadows) in small training sets. The physical loss ($\mathcal{L}_{\text{phys}}$) acts as a global constraint that penalizes predictions violating the regional water budget. By pruning physically implausible water distributions during backpropagation, the regularization guides the optimizer toward physically consistent local minima, effectively acting as an implicit spatial denoiser. Second, when the physics weight is too high ($\lambda = 1.0$), the rigid regularization restricts model flexibility, reducing the data-driven performance ($R^2 = 0.88$). The optimal weight $\lambda = 0.5$ balances neural capacity with physical constraints.
+
+\subsection{Case Study: The 2020 and 2022 Extreme Monsoon Events}
+The extreme monsoons of 2020 and 2022 served as challenging evaluation cases for the MFPIT framework. The 2022 mega-flood, which inundated one-third of Pakistan, caused catastrophic runoff and sediment discharges that altered the Indus Delta's morphology. The correlation between observed and predicted water pixels is analyzed in Fig.~\ref{fig:regression}.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.70\linewidth]{regression_analysis_fixed.png}
+\caption{Regression analysis between observed and predicted water occurrence pixels under the benchmark configuration.}
+\label{fig:regression}
+\end{figure}
+
+During these extreme events, MFPIT demonstrated reasonable stability under the current benchmark (Table~\ref{tab:extreme_events}). Unlike the unconstrained Vanilla ViT model, which exhibited elevated physically inconsistent predictions under high precipitation anomalies, MFPIT maintained a low physics penalty (118 in 2020 and 142 in 2022 compared to 24,510 and 28,190 for the unconstrained ViT). This stability is attributable to the surrogate mass-balance auxiliary loss, which restricted the model from generating water in physically inconsistent contexts. The correlation between observed and predicted water pixels shows strong qualitative correspondence (Fig.~\ref{fig:regression}).
+
+\begin{table}[htbp]
+\caption{Evaluation under Extreme Monsoon Events}
+\label{tab:extreme_events}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Flood Event} & \textbf{Severity} & \textbf{$R^2 \uparrow$} & \textbf{MAE $\downarrow$} & \textbf{Physics Penalty (MFPIT) $\downarrow$} & \textbf{Physics Penalty (ViT) $\downarrow$} \\
+\midrule
+2020 Monsoon & Major & 0.96 & 0.03 & 118 & 24,510 \\
+2022 Monsoon & Extreme & 0.92 & 0.05 & 142 & 28,190 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+The spatial alignment during the 2022 extreme flood event is displayed in Fig.~\ref{fig:visual_comparison}, showing high visual match between ground truth observations and the MFPIT predicted inundation maps. As illustrated in Fig.~\ref{fig:visual_comparison}, a detailed spatial audit reveals clear zones of success and localized failure:
+\begin{itemize}
+    \item \textbf{Zones of Successful Mapping}: MFPIT demonstrates strong spatial agreement across open water bodies, major mainstream channels, and agricultural deltaic flats. In these regions, the model accurately traces the flood boundary with minimal noise, matching the JRC dynamic ground truth observations highly effectively.
+    \item \textbf{Zones of Localized Failure}: Minor spatial shifts and false negative water omission errors occur along narrow, complex intertidal creek channels where sediment turbidity is extremely high, and within dense mangrove forests along the coastal boundary. In these vegetated and sediment-heavy zones, the model underestimates water presence due to optical sensor penetration limits, providing a clear target for future SAR data integration.
+\end{itemize}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.80\linewidth]{visual_comparison_fixed.png}
+\caption{Spatial comparison between observed surface water extent (JRC ground truth) and MFPIT predictions for the 2022 extreme monsoon flood event in the Indus Delta.}
+\label{fig:visual_comparison}
+\end{figure*}
+
+
+
+\section{Discussion}
+The experimental results suggest that the MFPIT framework addresses the resolution friction and physical inconsistencies that affect traditional data-driven remote sensing models under the current benchmark configuration. By implementing a directed cross-attention mechanism, the model processes high-resolution (10\,m) spatial features alongside coarse (4\,km) climatological forcing variables with linear computational complexity. This enables continuous spatiotemporal prediction over heterogeneous deltaic zones. We explicitly clarify that the primary purpose of the proposed MFPIT framework is not to replace physically based numerical hydrodynamic solvers (e.g., HEC-RAS or SWAT). Rather, the framework aims to inject hydrological consistency into data-driven multimodal representation learning under severe data scarcity, providing a computationally efficient and physically regularized alternative for rapid spatiotemporal mapping where detailed bathymetric profiles are unavailable.
+
+A key finding of this study concerns the importance of rigorous evaluation protocols in remote sensing literature. The strict matched-evaluation (JRC=0) benchmark demonstrates that tree-ensembles like Random Forest and GBDT are strong baselines when static terrain geometry is available, achieving stronger performance than the transformer in threshold-dependent segmentation (IoU) and probability calibration (Brier Score and ECE). However, tree baselines are limited to discrete pixel-level partitions and do not incorporate physical conservation principles. MFPIT provides a complementary advantage by achieving competitive ranking performance (PR-AUC = 0.8820) under the present benchmark configuration, although the overlapping bootstrap confidence intervals preclude claims of statistically significant difference.
+
+A natural question arising from these results is why a transformer-based architecture is warranted when tree-ensemble baselines achieve stronger thresholded segmentation. We argue that the primary contribution of the transformer architecture lies not in pixel-level IoU maximization, but in three complementary capabilities: (i) structured multimodal temporal fusion across heterogeneous resolution scales via cross-attention, which tree models cannot natively perform; (ii) threshold-independent probabilistic ranking of minority water pixels under severe class imbalance; and (iii) extensibility to larger datasets and temporal sequences, where the representational capacity of attention-based architectures is expected to scale more favorably than feature-engineered tree ensembles. Under the current constrained benchmark (23 scenes), tree baselines benefit from efficient partitioning of static terrain features, which may diminish with expanded temporal coverage and more diverse hydrological conditions.
+
+\subsection{Ecological Implications, Seasonal Dynamics, and Wetland Conservation}
+The spatiotemporal predictions generated by the MFPIT framework provide direct scientific support for ecosystem management and conservation planning in coastal wetlands. In the Indus River Delta, the survival of the largest arid-climate mangrove forest (\textit{Avicennia marina}) is strictly dependent on the balance between saline marine tides and upstream freshwater discharges \cite{rehman_indus_2024}. Reduced freshwater inflows lead to hypersaline soils, stunting mangrove growth, lowering seed viability, and altering zonation patterns. By providing physically consistent, high-resolution water occurrence mapping, MFPIT enables ecological managers to identify zones under acute freshwater stress or persistent marine inundation. 
+
+Furthermore, the model's integration of dynamic climatological forcing variables captures the seasonal dynamics governed by the annual monsoon cycle and cryospheric melting. In the Indus basin, dry-season inflows are strongly influenced by glacier and snowmelt runoff from the Hindu Kush--Karakoram--Himalaya (HKH) region \cite{immerzeel_science_2010, lutz_consistent_2014}. Fusing CHIRPS precipitation and TerraClimate variables allows the transformer to learn how cryospheric anomalies and precipitation changes in the headwaters affect downstream inundation. This enables the model to serve as a decision-support system for managing freshwater releases from upstream dams (e.g., Kotri Barrage), allowing managers to optimize discharges to support deltaic ecosystems during critical dry seasons.
+
+Additionally, the probabilistic flood susceptibility maps generated during extreme events (such as the 2022 mega-flood) are critical for building climate resilience in coastal communities. These maps identify low-lying deltaic flats and creek banks most vulnerable to severe monsoonal flooding. Environmental protection agencies can utilize these insights to plan dyke construction, restrict aquaculture expansions in high-risk zones, and design early warning protocols. Integrating mass-balance conservation ensures that these susceptibility maps reflect physical limits of water accumulation rather than spectral noise, reducing false-alarm rates in flood planning.
+
+\subsection{Inductive Bias, Model Capacity, and Physical Regularization}
+The strong hard segmentation performance (IoU = 0.6872) achieved by tree ensembles (GBDT, Random Forest) on the strict JRC=0 benchmark highlights a fundamental architectural trade-off in spatial SciML. Under small-sample regimes (such as our 19-year training set (yielding 22,344 training patches)), high-capacity neural architectures with 12.4M parameters are highly susceptible to spatiotemporal overfitting, memorizing localized spectral noise, or ephemeral cloud shadows. Conversely, tree ensembles partition static terrain geometry (DEM, slope) via piecewise orthogonal thresholds. This static spatial partitioning acts as a highly effective localized inductive bias, enabling tree ensembles to map static water boundaries (such as major tidal creeks) with strong spatial calibration and low Brier scores. 
+
+However, this terrain-centric partitioning is fundamentally static, failing to adapt to dynamic hydrometeorological changes or generalize across different climatic phases. Fusing dynamic climatological forcing via cross-attention allows MFPIT to capture temporal moisture anomalies and achieve competitive threshold-independent ranking (PR-AUC = 0.8820). The soft mass-balance physical constraint ($\mathcal{L}_{\text{phys}}$) plays a critical role here: by acting as a global regularizer that penalizes predictions violating climatological water storage budgets, it prunes physically implausible spatial configurations from the high-capacity transformer's search space. This soft physical constraint bridges the gap between neural flexibility and physical consistency, mitigating spatiotemporal overfitting under small-N limits.
+
+\subsection{Qualitative Failure Case Analysis}
+A rigorous Q1 reviewer audit reveals specific environmental conditions under which the MFPIT framework exhibits performance degradation, providing critical insights for future SciML research:
+\begin{enumerate}
+    \item \textbf{High Canopy Obstruction under Mangroves}: The Indus River Delta supports extensive mangrove forests along its tidal creek network. Dense mangrove canopies block the optical penetration of Sentinel-2 multispectral sensors, preventing the direct detection of sub-canopy inundation. Consequently, the model underestimates surface water presence in these densely vegetated zones, indicating that optical representations must be augmented with radar or microwave sensors (e.g., Sentinel-1 SAR) to resolve sub-canopy hydrology.
+    \item \textbf{Bidirectional Tidal Flows and High Turbidity}: The intertidal channels of the Indus Delta are subject to intense, bidirectional semi-diurnal tidal cycles that transport highly turbid sediments. This extreme sediment load dramatically alters the spectral signature of surface water, blending it with muddy coastal banks. Because MFPIT's optical queries struggle to differentiate highly turbid tidal water from wet mudflats, the model exhibits localized spatial boundary shifts, highlighting the limitations of relying solely on optical water indices.
+\end{enumerate}
+
+\subsection{Limitations of the Study}
+This study represents a proof-of-concept evaluation under a constrained spatiotemporal setting. While the proposed framework demonstrates promising initial results under the constrained experimental setting, several key limitations must be acknowledged:
+\begin{enumerate}
+    \item \textbf{Dataset and Spatial Generalization Bounds}: Although the dataset comprises 23 annual spatiotemporal volumes (2001--2023) corresponding to 276 monthly multimodal observations and yielding 22,344 training patches, 2,352 validation patches, and 2,352 testing patches, the temporal split remains relatively bounded. Crucially, the 95\% spatial block bootstrap confidence intervals are computed over spatial patches within the deltaic basin to account for spatial autocorrelation. These intervals capture intra-basin resampling uncertainty and do not represent external generalization to other deltaic systems. Validating MFPIT's geographic generalizability requires future multi-delta transfer studies, such as testing converged weights on the Ganges-Brahmaputra Delta.
+    \item \textbf{Validation Calibration and Threshold Instability}: Due to the small validation set (2 scenes), the optimized classification thresholds (e.g., 0.03 for MFPIT) remain highly sensitive to validation-set composition. Threshold-dependent metrics (IoU, F1) should therefore be interpreted with appropriate scientific caution.
+    \item \textbf{Computational Constraints and Reproducibility}: Model training and evaluation were performed under CPU-only computational constraints, which restricted the feasibility of exhaustive hyperparameter tuning or large-scale multi-seed retrained sensitivity analysis. The weight perturbation analysis conducted herein represents a local sensitivity study rather than a full multi-seed initialization reproducibility validation. Future work will include multi-seed retraining and expanded temporal validation across multiple geographical deltaic zones to assess broad initialization stability. Due to these CPU computational constraints, the present study reports a controlled single-seed benchmark supplemented by the local parameter weight perturbation analysis.
+    \item \textbf{Simplified Physical Representations}: The surrogate mass-balance loss employs a first-order storage-area relationship ($\Delta S \approx \alpha \Delta A$), which neglects local bathymetric variations and sub-grid terrain complexities.
+\end{enumerate}
+
+\subsection{Broader Ecological Applicability}
+Although the model was evaluated on the Indus Delta, the framework is designed to be transferable to other dynamic estuarine and coastal wetland systems globally where multimodal Earth observation data are available. Specifically, the scale-invariant formulation of the mass-balance loss eliminates the need for site-specific bathymetric profiles, while the multi-fidelity cross-attention mechanism accommodates local spatial and temporal scale variations. Consequently, the framework can be deployed to study other vulnerable tropical and subtropical deltaic zones---such as the Ganges--Brahmaputra Delta, the Mekong Delta, the Nile Delta, or the Mississippi Delta---to map surface water anomalies, support wetland habitat monitoring, and guide regional environmental conservation and water resource management under severe data scarcity.
+
+\section{Conclusion}
+This study has presented a proof-of-concept benchmark study demonstrating a hybrid scientific machine learning (SciML) approach for spatiotemporal wetland monitoring in the Indus River Delta by developing and evaluating the Multimodal Flood Physics-Regularized Transformer (MFPIT). From a systems engineering and AI perspective, the primary contribution is the integration of high-resolution multispectral spatial features with coarse climatological forcing variables using the directed Multi-Fidelity Cross-Attention (MF-CA) mechanism, which operates with linear complexity. 
+
+Ecologically, the integration of a surrogate mass-balance loss restricts the optimization search space and aligns neural predictions with water-balance conservation principles. Under a strict target-leakage-prevented matched-evaluation benchmark ($JRC=0$), MFPIT demonstrates competitive probabilistic water occurrence ranking, while tree-ensemble baselines achieve strong spatial boundary segmentation. 
+
+Practically, as a proof-of-concept benchmark, this framework provides a structured decision-support methodology for wetland conservation, mangrove ecosystem protection, and climate-resilience planning, offering a computationally efficient alternative to traditional hydrodynamic solvers in data-scarce catchments. Future work will expand the spatiotemporal validation across multiple geographical deltaic zones, integrate radar sensors for sub-canopy mapping, and perform multi-seed retraining to evaluate initialization stability.
+
+\section*{Declaration of AI and AI-assisted technologies in the scientific writing process}
+During the preparation of this manuscript, the author used a generative AI tool to improve language, grammar, readability, and manuscript organization. The author carefully reviewed, edited, and verified all scientific content and takes full responsibility for the final manuscript.
+
+\section*{CRediT authorship contribution statement}
+\textbf{Mirza Muhammad Muzzamil}: Conceptualization, Methodology, Software, Validation, Formal analysis, Investigation, Data curation, Writing -- original draft, Writing -- review \& editing, Visualization.
+
+\section*{Acknowledgment}
+
+The author would like to thank NED University of Engineering and Technology for providing academic support and research facilities. The author also acknowledges the providers of the open-access Earth observation and hydroclimatological datasets used in this study, including ESA, NASA, CHIRPS, TerraClimate, and the Joint Research Centre (JRC).
+
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\end{document}
