@@ -1,0 +1,7 @@
+Highlights for Ecological Informatics Submission
+
+• MFPIT fuses multi-resolution Earth observation and hydroclimate data.
+• Hydrological mass-balance regularization ensures physical consistency.
+• Multi-fidelity cross-attention resolves environmental scale disparities.
+• Evaluated on a 23-year spatiotemporal benchmark in the Indus Delta.
+• Supports wetland conservation, mangrove protection, and flood planning.

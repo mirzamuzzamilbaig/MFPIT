@@ -1,0 +1,32 @@
+SUGGESTED REVIEWERS FOR ECOLOGICAL INFORMATICS
+
+1. Dr. Guy J.-P. Schumann
+   Affiliation: RSS-Hydro / University of Bristol
+   Country: Luxembourg / United Kingdom
+   Email: gjpschumann@gmail.com
+   Expertise: Satellite remote sensing of flood inundation, SAR-optical integration, hydrodynamic modeling, flood risk assessment in data-scarce regions.
+
+2. Prof. Dr. Chaopeng Shen
+   Affiliation: Department of Civil and Environmental Engineering, The Pennsylvania State University
+   Country: USA
+   Email: cshen@engr.psu.edu
+   Expertise: Deep learning in hydrology, differentiable environmental modeling, physics-informed machine learning, hydrological scale dynamics.
+
+3. Dr. Christian Kuenzer
+   Affiliation: Earth Observation Center (EOC), German Aerospace Center (DLR)
+   Country: Germany
+   Email: christian.kuenzer@dlr.de
+   Expertise: Remote sensing of river deltas, wetland dynamics, time-series satellite analysis, coastal geomorphology, estuarine ecosystem monitoring.
+
+4. Dr. Vahid Nourani
+   Affiliation: Center of Excellence in Hydroinformatics, University of Tabriz / Near East University
+   Country: Iran / Cyprus
+   Email: nourani@tabrizu.ac.ir
+   Expertise: AI and machine learning in hydrological modeling, spatiotemporal remote sensing, hydroinformatics, ungauged basins.
+
+5. Dr. Muhammad Adnan
+   Affiliation: Remote Sensing & GIS Centre, Institute of Geographical Information Systems (IGIS), NUST / SUPARCO
+   Country: Pakistan
+   Email: adnan@igis.nust.edu.pk
+   Expertise: Indus Basin hydrology, remote sensing of flood disasters in Pakistan, Google Earth Engine workflows, climate-resilient water resource mapping.
+
