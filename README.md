@@ -6,6 +6,8 @@
 
 This repository contains the official PyTorch implementation of **MFPIT** (Multimodal Flood Physics-Regularized Transformer), a scientific machine learning (SciML) framework designed for spatiotemporal water occurrence mapping and flood susceptibility prediction in data-scarce coastal deltaic basins (benchmarked on the Lower Indus River Basin and Delta, Sindh, Pakistan).
 
+> **IEEE Preprint Notice (IEEE PSPB Operations Manual, Section 8.1.9B):** *This work has been submitted to the IEEE for possible publication. Copyright may be transferred without notice, after which this version may no longer be accessible.*
+
 ---
 
 ## 📖 Overview
