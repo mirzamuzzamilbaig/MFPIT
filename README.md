@@ -40,9 +40,14 @@ MFPIT_Project/
 ├── LICENSE                         # MIT License
 ├── README.md                       # Documentation & verified benchmark summary
 ├── requirements.txt                # Python dependencies
-├── paper(finalRevised).tex         # Verified LaTeX manuscript source (elsarticle)
-├── paper(finalRevised).pdf         # Compiled manuscript PDF
-├── references.bib                  # Verified BibTeX bibliography (37 verified entries)
+├── Research_Paper_IEEE_Access.docx # Formatted IEEE Access Word manuscript
+├── Research_Paper_IEEE_Access.pdf  # Compiled IEEE Access double-column PDF
+├── ieee_access_submission_2026-11-05/ # Complete IEEE Access submission bundle
+│   ├── Research_Paper_IEEE_Access.tex # IEEEtran LaTeX source
+│   ├── Research_Paper_IEEE_Access.pdf # Compiled submission PDF
+│   ├── Cover_Letter_IEEE_Access.pdf   # IEEE Access cover letter
+│   ├── MFPIT_IEEE_Access_LaTeX_Bundle.zip # Source archive for IEEE submission
+│   └── references.bib                 # Verified BibTeX bibliography (37 entries)
 ├── MFPIT_step1_create_dirs.py      # Script to initialize directory tree
 ├── data/                           # Dataset directories
 │   ├── DOWNLOAD_MANIFEST.csv       # GEE download manifest
@@ -150,7 +155,7 @@ If you find this codebase or research useful, please cite our paper:
 @article{muzzamil2026integrating,
   title={Integrating Multimodal Earth Observations and Hydrological Regularization for Spatiotemporal Wetland Water Mapping in the Indus Delta},
   author={Muzzamil, Mirza Muhammad},
-  journal={Ecological Informatics},
+  journal={IEEE Access},
   note={Under Review},
   year={2026}
 }
