@@ -185,3 +185,12 @@ research_final_for_prism/*
 # Ignore validation results folder content
 models/engineering_validation_results/*
 !models/engineering_validation_results/.gitkeep
+
+# Ignore manuscripts, submission packages, and paper drafts
+*submission*/
+Research_Paper_*
+*.pdf
+*.docx
+*.tex
+*.bib
+*.zip
